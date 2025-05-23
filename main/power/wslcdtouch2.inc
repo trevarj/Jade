@@ -32,7 +32,7 @@ static adc_cali_handle_t adc1_cali_chan0_handle = NULL;
 
 static int ema_voltage = 0;
 
-static void button_shutdown(void* arg, void* ctx)
+static void button_shutdown(void *button_handle, void *usr_data)
 {
     power_backlight_off();
     while (gpio_get_level(GPIO_NUM_0) == 0) {
@@ -125,7 +125,9 @@ esp_err_t power_init(void)
     return ESP_OK;
 }
 
-esp_err_t power_shutdown(void) { esp_deep_sleep_start(); }
+esp_err_t power_shutdown(void) {
+    esp_deep_sleep_start();
+}
 
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
@@ -172,12 +174,12 @@ uint16_t power_get_vbat(void)
     // apply Estimated Moving Average since the ADC seems to have a lot of noise
     ema_voltage = BATTERY_EMA_ALPHA * voltage + (1 - BATTERY_EMA_ALPHA) * (ema_voltage == 0 ? voltage : ema_voltage);
     /* JADE_LOGI("Raw: %.2dmV, Smoothed: %.2d mV", voltage, ema_voltage); */
-    return (uint16_t)ema_voltage;
+    return (uint16_t) (ema_voltage * 3);
 }
 
 uint8_t power_get_battery_status(void)
 {
-    const uint16_t vbat = power_get_vbat() * 3; // apply voltage divider
+    const uint16_t vbat = power_get_vbat();
     if (vbat > 3800) {
         return 5;
     } else if (vbat > 3600) {
@@ -206,4 +208,6 @@ void disable_usb_host(void) {}
 void enable_usb_host(void) {}
 
 // This is only a guess by the ADC voltage when the USB is plugged in
-bool usb_connected(void) { return power_get_vbat() > 1350; }
+bool usb_connected(void) {
+    return power_get_vbat() > 4050;
+}
